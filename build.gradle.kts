@@ -30,7 +30,7 @@ publishing {
 }
 
 dependencies {
-    implementation("com.github.wabbit-corp:kotlin-extra-io:1.0.0")
+    implementation("com.github.wabbit-corp:kotlin-extra-io:1.0.1")
 
     testImplementation(kotlin("test"))
 }
