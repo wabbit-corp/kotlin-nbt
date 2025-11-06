@@ -7,35 +7,28 @@ import java.io.OutputStream
 import java.nio.charset.StandardCharsets
 
 /**
- * This class writes **NBT**, or **Named Binary Tag**
- * `Tag` objects to an underlying `OutputStream`.
+ * This class writes **NBT**, or **Named Binary Tag** `Tag` objects to an underlying `OutputStream`.
  *
- *
- * The NBT format was created by Markus Persson, and the specification may be
- * found at [http://www.minecraft.net/docs/NBT.txt](http://www.minecraft.net/docs/NBT.txt).
+ * The NBT format was created by Markus Persson, and the specification may be found at
+ * [http://www.minecraft.net/docs/NBT.txt](http://www.minecraft.net/docs/NBT.txt).
  */
 class NBTOutputStream
 /**
- * Creates a new `NBTOutputStream`, which will write data to the
- * specified underlying output stream.
+ * Creates a new `NBTOutputStream`, which will write data to the specified underlying output stream.
  *
  * @param os The output stream.
  * @throws IOException if an I/O error occurs.
  */
 @Throws(IOException::class)
 constructor(os: OutputStream) : Closeable {
-    /**
-     * The output stream.
-     */
+    /** The output stream. */
     private val os: DataOutputStream = DataOutputStream(os)
 
     /**
      * Writes a tag.
      *
-     * @param tag
-     * The tag to write.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag to write.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     fun writeNamedTag(name: String, tag: Tag) {
@@ -56,10 +49,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes tag payload.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeTagPayload(tag: Tag) {
@@ -89,10 +80,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Byte` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeByteTagPayload(tag: ByteTag) {
@@ -102,10 +91,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Byte_Array` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeByteArrayTagPayload(tag: ByteArrayTag) {
@@ -117,10 +104,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Compound` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeCompoundTagPayload(tag: CompoundTag) {
@@ -133,10 +118,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_List` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun <T : Tag> writeListTagPayload(tag: ListTag<T>) {
@@ -154,10 +137,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_String` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeStringTagPayload(tag: StringTag) {
@@ -169,10 +150,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Double` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeDoubleTagPayload(tag: DoubleTag) {
@@ -182,10 +161,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Float` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeFloatTagPayload(tag: FloatTag) {
@@ -195,10 +172,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Long` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeLongTagPayload(tag: LongTag) {
@@ -208,10 +183,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Int` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeIntTagPayload(tag: IntTag) {
@@ -221,10 +194,8 @@ constructor(os: OutputStream) : Closeable {
     /**
      * Writes a `TAG_Short` tag.
      *
-     * @param tag
-     * The tag.
-     * @throws IOException
-     * if an I/O error occurs.
+     * @param tag The tag.
+     * @throws IOException if an I/O error occurs.
      */
     @Throws(IOException::class)
     private fun writeShortTagPayload(tag: ShortTag) {
@@ -237,7 +208,7 @@ constructor(os: OutputStream) : Closeable {
      * @param tag the tag
      */
     private fun writeEndTagPayload(@Suppress("UNUSED_PARAMETER") tag: EndTag) {
-        /* empty */
+        // empty
     }
 
     @Throws(IOException::class)
