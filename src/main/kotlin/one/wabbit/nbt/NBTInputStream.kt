@@ -43,7 +43,7 @@ constructor(stream: InputStream, byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN) : 
     @Throws(IOException::class)
     private fun readNamedTag(depth: Int): NamedTag {
         val rawType = stream.readByte().toInt() and 0xFF
-        if (rawType > TagType.all.size) {
+        if (rawType !in TagType.all.indices) {
             throw IOException("Illegal tag type $rawType.")
         }
 
@@ -96,14 +96,14 @@ constructor(stream: InputStream, byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN) : 
                     ByteArrayTag(bytes)
                 }
                 TagType.String -> {
-                    val length = stream.readShort().toInt()
+                    val length = stream.readShort().toInt() and 0xFFFF
                     val bytes = ByteArray(length)
                     stream.readFully(bytes)
                     StringTag(String(bytes, StandardCharsets.UTF_8))
                 }
                 TagType.List -> {
                     val rawType = stream.readByte().toInt() and 0xFF
-                    if (rawType > TagType.all.size) {
+                    if (rawType !in TagType.all.indices) {
                         throw IOException("Illegal tag type $rawType.")
                     }
 
@@ -139,6 +139,14 @@ constructor(stream: InputStream, byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN) : 
                     }
                     IntArrayTag(data)
                 }
+                TagType.LongArray -> {
+                    val length = stream.readInt()
+                    val data = LongArray(length)
+                    for (i in 0 until length) {
+                        data[i] = stream.readLong()
+                    }
+                    LongArrayTag(data)
+                }
             }
 
         @Suppress("UNCHECKED_CAST")
@@ -147,7 +155,7 @@ constructor(stream: InputStream, byteOrder: ByteOrder = ByteOrder.BIG_ENDIAN) : 
 
     fun readRawTag(): Tag {
         val rawType = stream.readByte().toInt() and 0xFF
-        if (rawType > TagType.all.size) {
+        if (rawType !in TagType.all.indices) {
             throw IOException("Illegal tag type $rawType.")
         }
 

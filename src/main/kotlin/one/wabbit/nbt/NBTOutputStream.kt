@@ -68,6 +68,7 @@ constructor(os: OutputStream) : Closeable {
             TagType.List -> writeListTagPayload(tag as ListTag<*>)
             TagType.Compound -> writeCompoundTagPayload(tag as CompoundTag)
             TagType.IntArray -> writeIntArrayTagPayload(tag as IntArrayTag)
+            TagType.LongArray -> writeLongArrayTagPayload(tag as LongArrayTag)
         }
     }
 
@@ -217,6 +218,15 @@ constructor(os: OutputStream) : Closeable {
         os.writeInt(data.size)
         for (aData in data) {
             os.writeInt(aData)
+        }
+    }
+
+    @Throws(IOException::class)
+    private fun writeLongArrayTagPayload(tag: LongArrayTag) {
+        val data = tag.value
+        os.writeInt(data.size)
+        for (aData in data) {
+            os.writeLong(aData)
         }
     }
 

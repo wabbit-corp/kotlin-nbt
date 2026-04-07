@@ -1,7 +1,5 @@
 package one.wabbit.nbt
 
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
 import java.util.Locale
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.contract
@@ -34,6 +32,7 @@ object NBTPackage {
                 ListTag::class.java,
                 CompoundTag::class.java,
                 IntArrayTag::class.java,
+                LongArrayTag::class.java,
                 NBTOutputStream::class.java,
                 NBTInputStream::class.java,
             )
@@ -69,32 +68,36 @@ sealed class TagType<T : Tag>(val code: kotlin.Int, val clazz: KClass<T>, val na
 
     data object IntArray : TagType<IntArrayTag>(11, IntArrayTag::class, "TAG_Int_Array")
 
-    companion object {
-        val all =
-            listOf(
-                End,
-                Byte,
-                Short,
-                Int,
-                Long,
-                Float,
-                Double,
-                ByteArray,
-                String,
-                List,
-                Compound,
-                IntArray,
-            )
+    data object LongArray : TagType<LongArrayTag>(12, LongArrayTag::class, "TAG_Long_Array")
 
-        init {
-            for (i in all.indices) {
-                check(all[i].code == i) { "TagType code mismatch: ${all[i].code} != $i" }
+    companion object {
+        val all: kotlin.collections.List<TagType<out Tag>> by lazy {
+            listOf(
+                TagType.End,
+                TagType.Byte,
+                TagType.Short,
+                TagType.Int,
+                TagType.Long,
+                TagType.Float,
+                TagType.Double,
+                TagType.ByteArray,
+                TagType.String,
+                TagType.List,
+                TagType.Compound,
+                TagType.IntArray,
+                TagType.LongArray,
+            ).also { entries ->
+                for (i in entries.indices) {
+                    check(entries[i].code == i) {
+                        "TagType code mismatch: ${entries[i].code} != $i"
+                    }
+                }
             }
         }
 
-        private val codeToTagType = all.associateBy { it.code }
-        private val nameToTagType = all.associateBy { it.name }
-        private val kclazzToTagType = all.associateBy { it.clazz }
+        private val codeToTagType by lazy { all.associateBy { it.code } }
+        private val nameToTagType by lazy { all.associateBy { it.name } }
+        private val kclazzToTagType by lazy { all.associateBy { it.clazz } }
 
         @JvmStatic
         fun fromCode(code: kotlin.Int): TagType<out Tag> =
@@ -185,11 +188,7 @@ sealed class Tag {
      *   name.
      */
     fun toByteArray(name: String): ByteArray {
-        val bos = ByteArrayOutputStream()
-        val nbtos = NBTOutputStream(bos)
-        nbtos.writeNamedTag(name, this)
-        nbtos.close()
-        return bos.toByteArray()
+        return NBTSerialization.toByteArray(name, this)
     }
 
     /**
@@ -198,12 +197,14 @@ sealed class Tag {
      * @return A `ByteArray` containing the serialized raw representation of the tag.
      */
     fun toRawByteArray(): ByteArray {
-        val bos = ByteArrayOutputStream()
-        val nbtos = NBTOutputStream(bos)
-        nbtos.writeRawTag(this)
-        nbtos.close()
-        return bos.toByteArray()
+        return NBTSerialization.toRawByteArray(this)
     }
+
+    fun toCompressedByteArray(name: String, compression: Compression): ByteArray =
+        NBTSerialization.toCompressedByteArray(compression, name, this)
+
+    fun toCompressedRawByteArray(compression: Compression): ByteArray =
+        NBTSerialization.toCompressedRawByteArray(compression, this)
 
     /**
      * Converts the current tag to its SNBT (Stringified Named Binary Tag) representation.
@@ -255,7 +256,7 @@ sealed class Tag {
                 sb.append("[B;")
                 for (i in value.indices) {
                     if (i != 0) sb.append(", ")
-                    sb.append(value[i])
+                    sb.append(value[i].toInt()).append("B")
                 }
                 sb.append("]")
             }
@@ -269,12 +270,26 @@ sealed class Tag {
                 sb.append("]")
             }
 
+            is LongArrayTag -> {
+                sb.append("[L;")
+                for (i in value.indices) {
+                    if (i != 0) sb.append(", ")
+                    sb.append(value[i]).append("L")
+                }
+                sb.append("]")
+            }
+
             is StringTag -> {
                 sb.append('"')
                 for (c in value) {
                     when (c) {
                         '\\' -> sb.append("\\\\")
                         '"' -> sb.append("\\\"")
+                        '\b' -> sb.append("\\b")
+                        '\t' -> sb.append("\\t")
+                        '\n' -> sb.append("\\n")
+                        '\u000C' -> sb.append("\\f")
+                        '\r' -> sb.append("\\r")
                         else -> sb.append(c)
                     }
                 }
@@ -298,13 +313,7 @@ sealed class Tag {
          * @param data The byte array containing the serialized NBT data.
          * @return The `Tag` object deserialized from the input byte array.
          */
-        fun fromByteArray(data: ByteArray): Tag {
-            val bis = ByteArrayInputStream(data)
-            val nbtis = NBTInputStream(bis)
-            val tag = nbtis.readNamedTag().tag
-            nbtis.close()
-            return tag
-        }
+        fun fromByteArray(data: ByteArray): Tag = NBTSerialization.fromByteArray(data)
 
         /**
          * Converts a raw byte array into a `Tag` object by deserializing the data.
@@ -313,13 +322,17 @@ sealed class Tag {
          *   `Tag`.
          * @return A `Tag` object representing the deserialized data.
          */
-        fun fromRawByteArray(data: ByteArray): Tag {
-            val bis = ByteArrayInputStream(data)
-            val nbtis = NBTInputStream(bis)
-            val tag = nbtis.readRawTag()
-            nbtis.close()
-            return tag
-        }
+        fun fromRawByteArray(data: ByteArray): Tag = NBTSerialization.fromRawByteArray(data)
+
+        fun fromCompressedByteArray(compression: Compression, data: ByteArray): Tag =
+            NBTSerialization.fromCompressedByteArray(compression, data)
+
+        fun fromCompressedRawByteArray(compression: Compression, data: ByteArray): Tag =
+            NBTSerialization.fromCompressedRawByteArray(compression, data)
+
+        fun fromByteArrayAuto(data: ByteArray): Tag = NBTSerialization.fromByteArrayAuto(data)
+
+        fun fromSNBT(text: String): Tag = SNBT.parse(text)
     }
 }
 
@@ -459,6 +472,34 @@ data class IntArrayTag(var value: IntArray) : Tag() {
     override fun hashCode(): Int = value.contentHashCode()
 }
 
+/** The `TAG_Long_Array` tag. */
+data class LongArrayTag(var value: LongArray) : Tag() {
+    override val type: TagType<out Tag>
+        get() = TagType.LongArray
+
+    override fun toString(): String {
+        val hex = StringBuilder()
+        for (b in value) {
+            val hexDigits = java.lang.Long.toHexString(b).uppercase(Locale.ENGLISH)
+            if (hexDigits.length == 1) {
+                hex.append("0")
+            }
+            hex.append(hexDigits).append(" ")
+        }
+        return "TAG_Long_Array($hex)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as LongArrayTag
+        if (!value.contentEquals(other.value)) return false
+        return true
+    }
+
+    override fun hashCode(): Int = value.contentHashCode()
+}
+
 fun byteTagOf(value: Byte): ByteTag = ByteTag(value)
 
 fun shortTagOf(value: Short): ShortTag = ShortTag(value)
@@ -476,6 +517,8 @@ fun stringTagOf(value: String): StringTag = StringTag(value)
 fun byteArrayTagOf(value: ByteArray): ByteArrayTag = ByteArrayTag(value)
 
 fun intArrayTagOf(value: IntArray): IntArrayTag = IntArrayTag(value)
+
+fun longArrayTagOf(value: LongArray): LongArrayTag = LongArrayTag(value)
 
 /**
  * Represents a tag that holds a list of other tags of the same type.
@@ -654,6 +697,8 @@ data class CompoundTag(var value: MutableMap<String, Tag>) : Tag() {
      *   the key.
      */
     fun getIntArray(key: String): IntArray? = (value[key] as? IntArrayTag)?.value
+
+    fun getLongArray(key: String): LongArray? = (value[key] as? LongArrayTag)?.value
 
     fun getByte(key: String): Byte? = (value[key] as? ByteTag)?.value
 
