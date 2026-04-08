@@ -11,8 +11,15 @@ dependencyResolutionManagement {
 }
 
 pluginManagement {
+    if (file("../kotlin-no-globals").isDirectory) {
+        includeBuild("../kotlin-no-globals") {
+            name = "local-plugin-kotlin-no-globals"
+        }
+    }
+
     repositories {
         google()
+        mavenCentral()
         gradlePluginPortal()
 
     }
@@ -31,8 +38,11 @@ pluginManagement {
         id("org.jetbrains.kotlinx.kover") version "0.9.3"
         id("com.vanniktech.maven.publish") version "0.36.0"
         id("org.jetbrains.intellij") version "1.17.2"
+        id("org.jetbrains.intellij.platform") version "2.10.4"
         id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
         id("net.minecrell.plugin-yml.bukkit") version "0.6.0"
+
+        id("one.wabbit.no-globals") version "0.0.1"
 
     }
 }

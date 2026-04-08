@@ -1,9 +1,6 @@
 package one.wabbit.nbt
 
-import java.util.ArrayDeque
-
 object SNBT {
-    @JvmStatic
     fun parse(text: String): Tag = Parser(text).parse()
 
     private class Parser(
@@ -46,7 +43,7 @@ object SNBT {
 
             val builder = StringBuilder()
             while (true) {
-                when (val c = peek()) {
+                when (val current = peek()) {
                     null -> throw IllegalArgumentException("Unterminated SNBT string.")
                     quote -> {
                         read()
@@ -95,7 +92,7 @@ object SNBT {
                             'U' -> {
                                 read()
                                 val codePoint = readHexDigits(8).toInt(16)
-                                builder.append(String(Character.toChars(codePoint)))
+                                builder.appendCodePoint(codePoint)
                             }
                             else -> {
                                 read()
@@ -105,7 +102,7 @@ object SNBT {
                     }
                     else -> {
                         read()
-                        builder.append(c)
+                        builder.append(current)
                     }
                 }
             }
@@ -114,38 +111,38 @@ object SNBT {
         private fun parseRelaxedToken(terminators: Set<Char>): String {
             skipWhitespace()
             val builder = StringBuilder()
-            val closingDelimiters = ArrayDeque<Char>()
+            val closingDelimiters = mutableListOf<Char>()
             var quote: Char? = null
             var escaped = false
 
             while (true) {
-                val c = peek() ?: break
+                val current = peek() ?: break
                 if (quote != null) {
                     read()
-                    builder.append(c)
+                    builder.append(current)
                     if (escaped) {
                         escaped = false
-                    } else if (c == '\\') {
+                    } else if (current == '\\') {
                         escaped = true
-                    } else if (c == quote) {
+                    } else if (current == quote) {
                         quote = null
                     }
                     continue
                 }
 
-                if (closingDelimiters.isEmpty() && terminators.contains(c)) {
+                if (closingDelimiters.isEmpty() && current in terminators) {
                     break
                 }
 
                 read()
-                builder.append(c)
+                builder.append(current)
 
-                when (c) {
-                    '"', '\'' -> quote = c
-                    '{' -> closingDelimiters.addLast('}')
-                    '[' -> closingDelimiters.addLast(']')
+                when (current) {
+                    '"', '\'' -> quote = current
+                    '{' -> closingDelimiters.add('}')
+                    '[' -> closingDelimiters.add(']')
                     '}', ']' -> {
-                        if (closingDelimiters.isNotEmpty() && closingDelimiters.last() == c) {
+                        if (closingDelimiters.isNotEmpty() && closingDelimiters.last() == current) {
                             closingDelimiters.removeLast()
                         }
                     }
@@ -187,12 +184,16 @@ object SNBT {
                     return null
                 }
 
-                return runCatching { digits.toLong(radix) }.getOrNull()?.let { if (isNegative) -it else it }
+                return runCatching { digits.toLong(radix) }.getOrNull()?.let {
+                    if (isNegative) {
+                        -it
+                    } else {
+                        it
+                    }
+                }
             }
 
-            return parseRadix("0x", 16)
-                ?: parseRadix("0b", 2)
-                ?: token.toLongOrNull()
+            return parseRadix("0x", 16) ?: parseRadix("0b", 2) ?: token.toLongOrNull()
         }
 
         private fun parseNumberOrIdentifier(token: String): Tag {
@@ -265,7 +266,7 @@ object SNBT {
                                 is IntTag -> it.value.toByte()
                                 else -> throw IllegalArgumentException("Invalid byte array element: $it")
                             }
-                        }.toByteArray(),
+                        }.toByteArray()
                     )
                 'I' ->
                     IntArrayTag(
@@ -274,7 +275,7 @@ object SNBT {
                                 is IntTag -> it.value
                                 else -> throw IllegalArgumentException("Invalid int array element: $it")
                             }
-                        }.toIntArray(),
+                        }.toIntArray()
                     )
                 'L' ->
                     LongArrayTag(
@@ -284,7 +285,7 @@ object SNBT {
                                 is IntTag -> it.value.toLong()
                                 else -> throw IllegalArgumentException("Invalid long array element: $it")
                             }
-                        }.toLongArray(),
+                        }.toLongArray()
                     )
                 else -> throw IllegalArgumentException("Unsupported typed SNBT array kind '$kind'.")
             }
@@ -379,6 +380,21 @@ object SNBT {
             skipWhitespace()
             require(index == text.length) { "Trailing characters found after SNBT value." }
             return value
+        }
+    }
+}
+
+private fun StringBuilder.appendCodePoint(codePoint: Int) {
+    when {
+        codePoint < 0 || codePoint > 0x10FFFF ->
+            throw IllegalArgumentException("Invalid Unicode code point in SNBT string.")
+        codePoint <= 0xFFFF -> append(codePoint.toChar())
+        else -> {
+            val adjusted = codePoint - 0x10000
+            val highSurrogate = ((adjusted ushr 10) + 0xD800).toChar()
+            val lowSurrogate = ((adjusted and 0x3FF) + 0xDC00).toChar()
+            append(highSurrogate)
+            append(lowSurrogate)
         }
     }
 }

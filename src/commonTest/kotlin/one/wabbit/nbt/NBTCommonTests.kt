@@ -3,14 +3,8 @@ package one.wabbit.nbt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 
-class NBTFeatureTests {
-    private fun resourceBytes(path: String): ByteArray =
-        checkNotNull(javaClass.getResourceAsStream(path)) { "Missing test resource: $path" }.use {
-            it.readAllBytes()
-        }
-
+class NBTCommonTests {
     @Test
     fun longArrayNamedRoundTripIsSupported() {
         val tag =
@@ -106,26 +100,5 @@ class NBTFeatureTests {
             compound.getString("Command"),
         )
         assertEquals(1, assertIs<IntTag>(compound["Time"]).value)
-    }
-
-    @Test
-    fun gzipHelloWorldFixtureAutoDetectsAndParsesExpectedContent() {
-        val parsed = Tag.fromByteArrayAuto(resourceBytes("/fixtures/hello_world_gzip.nbt"))
-        val compound = assertIs<CompoundTag>(parsed)
-
-        assertEquals("Bananrama", compound.getString("name"))
-    }
-
-    @Test
-    fun classicSchematicFixtureAutoDetectsAndExposesExpectedMetadata() {
-        val parsed = Tag.fromByteArrayAuto(resourceBytes("/fixtures/simple.schematic"))
-        val compound = assertIs<CompoundTag>(parsed)
-
-        assertEquals(4, assertIs<ShortTag>(assertNotNull(compound["Width"])).value.toInt())
-        assertEquals(4, assertIs<ShortTag>(assertNotNull(compound["Height"])).value.toInt())
-        assertEquals(4, assertIs<ShortTag>(assertNotNull(compound["Length"])).value.toInt())
-        assertEquals("Alpha", compound.getString("Materials"))
-        assertIs<ByteArrayTag>(assertNotNull(compound["Blocks"]))
-        assertIs<ByteArrayTag>(assertNotNull(compound["Data"]))
     }
 }
